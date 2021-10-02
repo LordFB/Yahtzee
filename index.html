@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yahtzee</title>
+    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css'
+        integrity='sha512-EZLkOqwILORob+p0BXZc+Vm3RgJBOe1Iq/0fiI7r/wJgzOFZMlsqTa29UEl6v6U6gsV4uIpsNZoV32YZqrCRCQ=='
+        crossorigin='anonymous' />
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <header>
+        <h1>Yahtzee!</h1>
+    </header>
+    <div id="display">
+        <div id="scorecard">
+            <ul class="topscores">
+                <li>Ones: <span id="ones"></span></li>
+                <li>Twos: <span id="twos"></span></li>
+                <li>Threes: <span id="threes"></span></li>
+                <li>Fours: <span id="fours"></span></li>
+                <li>Fives: <span id="fives"></span></li>
+                <li>Sixes: <span id="sixes"></span></li>
+                <li><br/></li>
+                <li>Three of a kind: <span id="toak"></span></li>
+                <li>Four of a kind: <span id="foak"></span></li>
+                <li>Full House: <span id="fh"></span></li>
+                <li>Low Straight: <span id="ls"></span></li>
+                <li>High Straight: <span id="hs"></span></li>
+                <li>Yahtzee!: <span id="y"></span></li>
+            </ul>
+        </div>
+    </div>
+    <div id="controls">
+
+    </div>
+    <script src='./js/p5.min.js'></script>
+    <script type="module" src="./js/yahtzee.js"></script>
+    <script type="module">
+
+        import { Yahtzee } from './js/yahtzee.js';
+
+        let yahtzee = window.yahtzee = new Yahtzee(5);
+
+        // setInterval(() => {
+        //     result = yahtzee.reRoll( result, [ Math.random() < 0.5, Math.random() < 0.5, Math.random() < 0.5,Math.random() < 0.5, Math.random() < 0.5] );
+        //     yahtzee.dice.draw(output, result.hex);
+        // }, 1000);
+
+    </script>
+    <script>
+        const States = {
+            firstThrow: 'firstThrow',
+            selectDice: 'selectDice',
+            pickScore: 'pickScore'
+        }
+
+        let controlsDiv = document.querySelector('#controls');
+
+        let state = States.firstThrow;
+        let images = [];
+        let dice = [6, 6, 6, 6, 6];
+        let mouseX, mouseY;
+        var mouseDown = false;
+        let selection = [0, 0, 0, 0, 0];
+
+        function preload() {
+            // preload() runs once
+            for (let i = 0; i < 6; i++) {
+                images[i] = loadImage(`./img/${i+1}_dots.png`);
+            }
+        }
+
+        function setup() {
+            let canv = createCanvas(800, 600);
+            frameRate(30);
+            canv.parent('display');
+            renderButtons();
+        }
+
+        function draw() {
+            background('#bababa')
+            fill(0);
+            noStroke();
+            text(`Players: ${yahtzee.amountOfPlayers}`, 25, 25);
+            text(`Round: ${yahtzee.round}`, 25, 45);
+            text(`Turn: Player ${yahtzee.currentPlayer}`, 25, 65);
+            text(`Throw: ${yahtzee.throws}`, 25, 85);
+            text(`State: ${state}`, 25, 105);
+            text('Mouse: ' + mouseX + ',' + mouseY, 25, 125);
+            for (let i = 0; i < dice.length; i++) {
+                const d = dice[i];
+                push();
+                translate(i * 150 + 30, 250)
+                let die = image(images[d - 1], 0, 0);
+                pop();
+            }
+            if (state === States.selectDice) {
+                for (let i = 0; i < selection.length; i++) {
+                    const sel = selection[i];
+                    if (sel === 1) {
+                        stroke(25)
+                        fill(200, 30, 22, 100);
+                        rect(i * 120 + 25 + (i * 30), 245, 137, 137,20,20,20,20);
+                    }
+                }
+            }
+        }
+
+        function click(x, y) {
+            if (state === States.selectDice && y > 139 && y < 380 && yahtzee.throws < 3) {
+                let xDie = Math.floor(x / 150);
+                if (xDie > yahtzee.amountOfDice - 1) return;
+                selection[xDie] = (selection[xDie] === 1) ? 0 : 1;
+                renderButtons();
+            }
+        }
+
+
+        // Add the event listeners for mousedown, mousemove, and mouseup
+        display.addEventListener('mousedown', e => {
+            mouseX = e.offsetX;
+            mouseY = e.offsetY;
+            mouseDown = true;
+            click(mouseX, mouseY);
+        });
+
+        display.addEventListener('mousemove', e => {
+            mouseX = e.offsetX;
+            mouseY = e.offsetY;
+        });
+
+        window.addEventListener('mouseup', e => {
+            if (mouseDown === true) {
+                mouseDown = false;
+            }
+        });
+
+        function nextState() {
+            if (state === States.firstThrow || state === States.secondThrow || state === States.thirdThrow) {
+                state = States.selectDice;
+                selection = [0, 0, 0, 0, 0];
+            }
+            renderButtons();
+        }
+
+        function renderButtons() {
+            controlsDiv.innerHTML = "";
+            if (state === States.firstThrow) {
+                buttonFactory('Roll Dice', (e) => {
+                    dice = yahtzee.roll().arr;
+                    yahtzee.throws++;
+                    nextState();
+                    countDice();
+                });
+            }
+            if (state === States.selectDice) {
+                if (selection.filter(i => i === 1).length !== 0) {
+                    buttonFactory('Roll Selected', function () {
+                        dice = yahtzee.reRoll(dice, selection.map(x => (x === 1) ? true : false));
+                        selection = [];
+                        yahtzee.throws++;
+                        if (yahtzee.throws === 3) selection = [0, 0, 0, 0, 0];
+                        renderButtons();
+                        countDice();
+                    });
+                } else {
+                    buttonFactory('Finish Round', function () {
+                        nextState();
+                        countDice();
+                    });
+                }
+            }
+        }
+
+        let onesDisplay = document.getElementById('ones');
+        let twosDisplay = document.getElementById('twos');
+        let threesDisplay = document.getElementById('threes');
+        let foursDisplay = document.getElementById('fours');
+        let fivesDisplay = document.getElementById('fives');
+        let sixesDisplay = document.getElementById('sixes');
+        let toakDisplay = document.getElementById('toak');
+        let foakDisplay = document.getElementById('foak');
+        let fhDisplay = document.getElementById('fh');
+
+        function outputScore(el, val, suffix = ''){
+            document.getElementById(el).innerText = "" + val + suffix;
+        }
+
+        function countDice(){
+
+            let ones = dice.filter( x => x === 1 ).length;
+            let twos = dice.filter( x => x === 2 ).length;
+            let threes = dice.filter( x => x === 3 ).length;
+            let fours = dice.filter( x => x === 4 ).length;
+            let fives = dice.filter( x => x === 5 ).length;
+            let sixes = dice.filter( x => x === 6 ).length;
+
+            let ts = [ones,twos,threes,fours,fives,sixes];
+ 
+            let toak = threeOfAKind();
+            let foak = fourOfAKind();
+            let fh = fullHouse(ts);
+            let ls = straight(ts, 4);
+            let hs = straight(ts, 5);
+            let y = yaht(ts);
+
+            outputScore('ones', ones);
+            outputScore('twos', twos * 2);
+            outputScore('threes', threes * 3);
+            outputScore('fours', fours * 4);
+            outputScore('fives', fives * 5);
+            outputScore('sixes', sixes * 6);
+            outputScore('toak', toak);
+            outputScore('foak', foak);
+            outputScore('fh', fh);
+            outputScore('ls', ls);
+            outputScore('hs', hs);
+            outputScore('y', y);
+
+        }
+
+        function threeOfAKind(){
+            for( let i=6; i>0; i-- ){
+                let yes = dice.filter( x => x === i ).length >= 3;
+                if ( yes ){
+                    return i;
+                }
+            }
+            return false;
+        }
+        function fourOfAKind(){
+            for( let i=6; i>0; i-- ){
+                let yes = dice.filter( x => x === i ).length >= 4;
+                if ( yes ){
+                    return i;
+                }
+            }
+            return false;
+        }
+
+        function fullHouse( scores ){
+            let two = scores.filter( x => x === 2).length > 0;
+            let three = scores.filter( x => x === 3).length > 0;
+            return two && three;
+        }
+
+        function straight( scores, length ){
+            scores.sort();
+            let hits = 0;
+            let counting = false;
+            for ( let i=0; i < 6; i++ ){
+                if ( scores[i] > 0 ){
+                    hits++;
+                    counting = true;
+                }
+                else if ( counting ){
+                    counting = false;
+                    hits--;
+                }
+            }
+            if ( hits === 5 ) return true;
+            return hits === length;
+        }
+
+        function yaht( scores ){
+            return scores.filter(x => x === 5 ).length === 1;
+        }
+
+        function buttonFactory(text, callback) {
+            let button = document.createElement('button');
+            button.innerText = text;
+            button.onclick = callback;
+            controlsDiv.appendChild(button);
+        }
+
+        // setInterval(() => {
+        //     dice = yahtzee.roll().arr;
+        // }, 1000);
+    </script>
+</body>
+
+</html>

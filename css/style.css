@@ -1,0 +1,57 @@
+*{
+    margin:0;
+    padding:0;
+    color:#FFF;
+}
+
+body{
+    width:100vw;
+    height:100vh;
+    background:#212121;
+    display:flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+header{
+    display:flex;
+    height:75px;
+    text-align: center;
+    color:#FFF;
+}
+header > h1{
+    text-align: center;
+}
+#display{
+    display:flex;
+    width:800px;
+    height:600px;
+    font-size: 150px;
+    text-align:center;
+}
+#scorecard{
+    font-size:14px;
+    width:200px;
+    margin-left:-100px;
+    background:#FDFDFD;
+}
+
+.topscores{
+    list-style:none;
+    width:200px;
+    padding:25px;
+    text-align: left;
+}
+.topscores *{
+    color: #212121;
+    line-height:15px;
+}
+canvas{
+    background:#BABABA;
+}
+
+#controls{
+    display:flex;
+    height:100px;
+    margin-top:10px;
+}
